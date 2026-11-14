@@ -22,11 +22,6 @@ def build_pipeline(ra: float, dec: float, cutout_size: str):
     return pipeline, output_dir, key
 
 def count_expected_files(pipeline, output_dir: Path) -> int | None:
-    """
-    After pipeline.run_query(), determine how many FITS files the download will fetch.
-    spxquery writes query results to disk; check the possible locations.
-    Falls back to None (unknown total) if none of the guesses work.
-    """
     for candidate in output_dir.glob("query_results*.csv"):
         with open(candidate) as f:
             return sum(1 for _ in f) - 1   # minus header

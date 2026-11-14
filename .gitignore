@@ -1,4 +1,28 @@
-backend/cache
-backend/static
-backend/.venv
+# backend
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.egg-info/
+backend/cache/          # the diskcache + FITS downloads
+backend/static/         # generated PNGs and served FITS
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
 backend/uv.lock
+
+# frontend
+frontend/node_modules/
+frontend/.next/
+frontend/dist/
+frontend/build/
+
+# editors
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.local

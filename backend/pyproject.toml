@@ -42,3 +42,6 @@ markers = [
     "integration: tests that hit real IRSA archive (slow, network required)",
     "hackathon: tests validating the five challenge target coordinates",
 ]
+filterwarnings = [
+    "ignore:Using `httpx` with `starlette.testclient`:starlette._utils.StarletteDeprecationWarning",
+]
