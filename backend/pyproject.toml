@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spherex-blink"
+version = "0.0.1"
+description = "Public blink comparator for NASA SPHEREx infrared sky data"
+requires-python = ">=3.12,<3.14"          # <-- your version pin
+readme = "README.md"                       # optional; delete if no README exists
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "diskcache>=5.6",
+    "spxquery>=0.2",
+    "astropy>=6.0",
+    "reproject>=0.13",
+    "pillow>=10.0",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]                        # <-- tells setuptools where your code lives
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-ra --strict-markers"
+markers = [
+    "integration: tests that hit real IRSA archive (slow, network required)",
+    "hackathon: tests validating the five challenge target coordinates",
+]
