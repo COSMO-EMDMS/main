@@ -1,8 +1,19 @@
 from pathlib import Path
+import matplotlib
 from spxquery import SPXQueryPipeline, Source, QueryConfig
 from spxquery.core.config import DownloadConfig, AdvancedConfig
 from .config import settings
 from . import cache
+
+if not hasattr(matplotlib.cm, "get_cmap"):
+    def _get_cmap(name=None, lut=None):
+        if name is None:
+            name = matplotlib.rcParams["image.cmap"]
+        if isinstance(name, matplotlib.colors.Colormap):
+            return name
+        return matplotlib.colormaps[name]
+
+    matplotlib.cm.get_cmap = _get_cmap
 
 def build_pipeline(ra: float, dec: float, cutout_size: str):
     key = cache.coord_key(ra, dec, cutout_size)
@@ -13,7 +24,7 @@ def build_pipeline(ra: float, dec: float, cutout_size: str):
     query = QueryConfig(source=source, output_dir=str(output_dir))
     download = DownloadConfig(
         cutout_size=cutout_size,
-        max_workers=settings.max_workers,   # 1
+        max_download_workers=settings.max_workers,  # ← правильно
         max_retries=settings.max_retries,
         retry_delay=settings.retry_delay,
         timeout=300,

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPHEREx Explorer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ВЕРХНЯЯ НАВИГАЦИЯ -->
+  <header>
+    <div class="logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#56b4f9" stroke-width="2">
+        <path d="M12 3a9 9 0 1 0 9 9"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+      <div>SPHEREx <span>EXPLORER</span></div>
+    </div>
+
+    <nav>
+      <a href="#" class="nav-link active" data-target="overview">Overview</a>
+      <a href="#" class="nav-link" data-target="explorer">Sky Explorer</a>
+      <a href="#" class="nav-link" data-target="timemachine">Time Machine</a>
+      <a href="#" class="nav-link" data-target="lab">Detection Lab</a>
+    </nav>
+
+    <div class="nav-right">
+      <button class="btn-outline" onclick="alert('1. Search coordinates in Sky Explorer\n2. Customize dates & epochs in Time Machine\n3. Click images in Detection Lab to place markers, use zoom controls (+/-) and rename objects!')">Guide</button>
+      <button class="btn-outline" onclick="switchPage('explorer')">Launch workspace</button>
+    </div>
+  </header>
+
+  <!-- 01. OVERVIEW -->
+  <section id="overview" class="page-section active-section">
+    <div class="hero-grid">
+      <div class="hero-left">
+        <div class="kicker">A NEW PERSPECTIVE ON THE COSMOS</div>
+        <h1>Explore the Invisible</h1>
+        <p class="hero-lead">A universe of discovery, one observation at a time.</p>
+        <p class="hero-desc">NASA's SPHEREx is mapping the sky in infrared light. Travel between observations, track sky regions by coordinates, and detect moving astrophysical objects with high precision.</p>
+        <button class="btn-accent" onclick="switchPage('explorer')">Start Exploring &rarr;</button>
+      </div>
+
+      <div class="hero-image-box">
+        <img id="overview-img" src="https://images-assets.nasa.gov/image/PIA12348/PIA12348~medium.jpg" alt="Deep Sky Survey">
+      </div>
+    </div>
+
+    <div class="workflow-header">
+      <div>
+        <h2 style="font-size: 22px;">The sky is never still.</h2>
+        <p style="color: #94a3b8; font-size: 13px; margin-top: 4px;">A seamless path from coordinate input to object tracking.</p>
+      </div>
+      <span class="kicker" style="margin:0;">OBSERVATION PIPELINE</span>
+    </div>
+
+    <div class="cards-3">
+      <div class="step-card" onclick="switchPage('explorer')">
+        <h3><span>01</span> Find your field</h3>
+        <p>Enter coordinates in ICRS frame to target specific sky regions.</p>
+        <div class="link">Open Sky Explorer &nearr;</div>
+      </div>
+      <div class="step-card" onclick="switchPage('timemachine')">
+        <h3><span>02</span> Travel through time</h3>
+        <p>Step through semi-annual mission epochs and monitor temporal changes.</p>
+        <div class="link">Open Time Machine &nearr;</div>
+      </div>
+      <div class="step-card" onclick="switchPage('lab')">
+        <h3><span>03</span> Follow the motion</h3>
+        <p>Blink compare frames and place markers to calculate precise positional shifts.</p>
+        <div class="link">Open Detection Lab &nearr;</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02. SKY EXPLORER -->
+  <section id="explorer" class="page-section">
+    <div class="page-header">
+      <div>
+        <div class="kicker">WORKSPACE / 01</div>
+        <h2>Sky Explorer</h2>
+        <p>Choose a coordinate. Discover what's there.</p>
+      </div>
+      <button class="btn-outline" onclick="alert('Enter Right Ascension (0° to 360°) and Declination (-90° to +90°).')">Coordinate guide</button>
+    </div>
+
+    <div class="explorer-layout">
+      <!-- Левая панель -->
+      <div class="panel">
+        <h3 style="font-size: 16px;">Find a sky region</h3>
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 16px;">Query backend archive by decimal degrees.</p>
+
+        <div class="field-group">
+          <label>Right Ascension (RA)</label>
+          <div class="input-wrap">
+            <input type="text" id="input-ra" value="83.6331">
+            <span>deg</span>
+          </div>
+          <div class="hint-text">0° to 360°</div>
+        </div>
+
+        <div class="field-group">
+          <label>Declination (Dec)</label>
+          <div class="input-wrap">
+            <input type="text" id="input-dec" value="+22.0145">
+            <span>deg</span>
+          </div>
+          <div class="hint-text">-90° to +90°</div>
+        </div>
+
+        <button class="btn-accent" style="width: 100%; justify-content: center; margin-top: 8px;" onclick="updateCoordinates()">Query Backend</button>
+
+        <hr style="border: 0; border-top: 1px solid #162238; margin: 20px 0;">
+
+        <div class="kicker">SELECTED FIELD</div>
+        <h4 id="display-region-name" style="font-size: 15px;">Target Region (RA: 83.6331°)</h4>
+        <table class="meta-table">
+          <tr><td>RA / Dec</td><td id="display-coord">83.6331° / +22.0145°</td></tr>
+          <tr><td>Field of view</td><td>12' &times; 12'</td></tr>
+          <tr><td>Observations</td><td>4 epochs loaded</td></tr>
+          <tr><td>Coordinate frame</td><td>ICRS / J2000</td></tr>
+        </table>
+      </div>
+
+      <!-- Правая панель -->
+      <div class="panel">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8;">
+          <span id="field-banner">FIELD 083.6331 +22.0145</span>
+          <span style="color: #56b4f9;">Backend Live Feed</span>
+        </div>
+
+        <div class="sky-viewport">
+          <img id="explorer-img" src="https://images-assets.nasa.gov/image/PIA12348/PIA12348~medium.jpg" alt="Sky Field">
+          <div class="coord-grid-overlay" id="coord-grid"></div>
+          <div class="zoom-controls">
+            <button onclick="zoomExplorer(0.15)">+</button>
+            <button onclick="zoomExplorer(-0.15)">−</button>
+            <button onclick="resetZoom()">&#8857;</button>
+          </div>
+        </div>
+
+        <div class="viewport-footer">
+          <div>
+            <strong id="explorer-epoch-date" style="font-size: 13px;">14 Oct 2026</strong>
+            <div style="font-size: 11px; color: #64748b;">Active observation epoch</div>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn-outline" id="btn-toggle-grid" onclick="toggleGrid()">Grid: On</button>
+            <button class="btn-accent" onclick="switchPage('timemachine')">View in Time Machine &rarr;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03. TIME MACHINE -->
+  <section id="timemachine" class="page-section">
+    <div class="page-header">
+      <div>
+        <div class="kicker">WORKSPACE / 02</div>
+        <h2>Time Machine</h2>
+        <p>Same field. Different moments. Track temporal changes across epochs.</p>
+      </div>
+      <button class="btn-outline" onclick="switchPage('explorer')">&larr; Sky Explorer</button>
+    </div>
+
+    <div class="tm-layout">
+      <div class="panel">
+        <div style="display: flex; justify-content: space-between; font-size: 13px;">
+          <strong id="tm-region-title">Target Region</strong>
+          <span id="tm-coords-subtitle" style="color: #64748b;">RA 83.6331° / Dec +22.0145°</span>
+        </div>
+
+        <div class="sky-viewport" style="height: 320px;">
+          <div style="position: absolute; top: 12px; left: 12px; background: rgba(7,11,20,0.9); padding: 8px 12px; border-radius: 6px; border: 1px solid #1e2d4a; z-index: 2;">
+            <div class="kicker" style="margin:0;" id="tm-epoch-tag">OBSERVATION 01 / 04</div>
+            <input type="text" id="tm-date-input" class="editable-date-input" value="14 Oct 2026 · 03:42 UTC" onchange="updateCustomDate(currentEpoch, this.value)">
+          </div>
+          <img id="tm-img" src="https://images-assets.nasa.gov/image/PIA17563/PIA17563~medium.jpg" alt="Epoch">
+        </div>
+
+        <div class="timeline-box">
+          <div style="display: flex; justify-content: space-between; font-size: 13px;">
+            <strong>Observation timeline</strong>
+            <span style="color: #64748b;">4 epochs &middot; Backend synced</span>
+          </div>
+
+          <div class="timeline-steps" id="timeline-dots">
+            <div class="step-dot active" onclick="selectEpoch(0)"><div class="dot"></div><span id="label-dot-0">14 Oct</span></div>
+            <div class="step-dot" onclick="selectEpoch(1)"><div class="dot"></div><span id="label-dot-1">16 Oct</span></div>
+            <div class="step-dot" onclick="selectEpoch(2)"><div class="dot"></div><span id="label-dot-2">18 Oct</span></div>
+            <div class="step-dot" onclick="selectEpoch(3)"><div class="dot"></div><span id="label-dot-3">20 Oct</span></div>
+          </div>
+
+          <div class="player-controls">
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button class="btn-outline" onclick="stepEpoch(-1)">|&lt;</button>
+              <button class="btn-accent" id="tm-play-btn" onclick="toggleTimeMachinePlay()">&#9654; Play</button>
+              <button class="btn-outline" onclick="stepEpoch(1)">&gt;|</button>
+              <span style="font-size: 12px; color: #64748b; margin-left: 10px;">Speed:</span>
+              <select id="tm-speed" class="btn-outline">
+                <option value="1000">1x</option>
+                <option value="500">2x</option>
+              </select>
+            </div>
+            <label style="font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="checkbox" id="tm-loop" checked> Loop
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Правая колонка View settings -->
+      <div class="panel" style="display: flex; flex-direction: column;">
+        <h3 style="font-size: 16px; margin-bottom: 12px;">View settings</h3>
+        <div class="kicker">COMPARISON MODE</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+          <button class="btn-accent" style="justify-content: center;">Sequence</button>
+          <button class="btn-outline" onclick="switchPage('lab')">Compare</button>
+        </div>
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 16px;">Step through observations to track evolution.</p>
+
+        <div class="kicker">OBSERVATIONS (Click to edit)</div>
+        <div class="obs-list" id="obs-sidebar-list">
+          <div class="obs-item active" onclick="selectEpoch(0)"><div><strong id="sidebar-label-0">01 &nbsp; 14 Oct 2026</strong><small>03:42 UTC</small></div></div>
+          <div class="obs-item" onclick="selectEpoch(1)"><div><strong id="sidebar-label-1">02 &nbsp; 16 Oct 2026</strong><small>03:42 UTC</small></div></div>
+          <div class="obs-item" onclick="selectEpoch(2)"><div><strong id="sidebar-label-2">03 &nbsp; 18 Oct 2026</strong><small>03:42 UTC</small></div></div>
+          <div class="obs-item" onclick="selectEpoch(3)"><div><strong id="sidebar-label-3">04 &nbsp; 20 Oct 2026</strong><small>03:42 UTC</small></div></div>
+        </div>
+
+        <div style="margin-top: auto; padding-top: 14px; border-top: 1px solid #162238;">
+          <strong style="font-size: 14px;">Moving object found?</strong>
+          <p style="font-size: 12px; color: #64748b; margin: 4px 0 12px;">Analyze and mark candidates in Detection Lab.</p>
+          <button class="btn-accent" style="width: 100%; justify-content: center;" onclick="switchPage('lab')">Open Detection Lab &rarr;</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04. DETECTION LAB -->
+  <section id="lab" class="page-section">
+    <div class="page-header">
+      <div>
+        <div class="kicker">WORKSPACE / 03</div>
+        <h2>Detection Lab</h2>
+        <p>Blink compare frames, zoom independently, and place/rename markers to measure shifts.</p>
+      </div>
+      <button class="btn-outline" onclick="switchPage('timemachine')">&larr; Time Machine</button>
+    </div>
+
+    <div class="lab-layout">
+      <div>
+        <div class="panel">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-accent" id="btn-side-mode" onclick="setLabView('side')">Side by side</button>
+              <button class="btn-outline" id="btn-blink-mode" onclick="setLabView('blink')">Blink comparator</button>
+            </div>
+            <span id="lab-region-label" style="font-size: 12px; color: #94a3b8;">Target Region</span>
+          </div>
+
+          <!-- Окно сравнения с раздельным зумом для каждого фото -->
+          <div class="compare-grid" id="lab-compare-grid">
+            <div class="frame-card" id="frame-a" onclick="handleImageClick(event, 0)">
+              <div class="frame-top">
+                <span>A / REF (CLICK TO MARK)</span>
+                <input type="text" id="lab-date-a" value="14 Oct 2026" onchange="syncLabDates()">
+              </div>
+             <img id="lab-img-a" src="https://images-assets.nasa.gov/image/PIA12348/PIA12348~medium.jpg" alt="Ref">
+              <div class="zoom-controls">
+                <button onclick="event.stopPropagation(); zoomLab('a', 0.15)">+</button>
+                <button onclick="event.stopPropagation(); zoomLab('a', -0.15)">−</button>
+                <button onclick="event.stopPropagation(); resetLabZoom('a')">&#8857;</button>
+              </div>
+              <div id="markers-container-a" style="position: absolute; inset: 0; pointer-events: none;"></div>
+            </div>
+
+            <div class="frame-card" id="frame-b" onclick="handleImageClick(event, 1)">
+              <div class="frame-top">
+                <span>B / COMP (CLICK TO MARK)</span>
+                <input type="text" id="lab-date-b" value="20 Oct 2026" onchange="syncLabDates()">
+              </div>
+              <img id="lab-img-b" src="https://images-assets.nasa.gov/image/PIA17563/PIA17563~medium.jpg" alt="Comp">
+              <div class="zoom-controls">
+                <button onclick="event.stopPropagation(); zoomLab('b', 0.15)">+</button>
+                <button onclick="event.stopPropagation(); zoomLab('b', -0.15)">−</button>
+                <button onclick="event.stopPropagation(); resetLabZoom('b')">&#8857;</button>
+              </div>
+              <div id="markers-container-b" style="position: absolute; inset: 0; pointer-events: none;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Нижний контроллер Blink Comparator -->
+        <div class="panel" style="margin-top: 16px;">
+          <h4 style="font-size: 15px;">Blink Comparator & Tools</h4>
+          <p style="font-size: 12px; color: #64748b; margin-bottom: 14px;">Alternate frames to inspect motion. Click images to place primary/secondary markers.</p>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <button class="btn-accent" id="btn-start-blink" onclick="toggleBlinking()">&#9654; Start blinking</button>
+              <span style="font-size: 12px; color: #64748b;">Interval:</span>
+              <select id="blink-interval" class="btn-outline">
+                <option value="500">0.5 sec</option>
+                <option value="1000">1.0 sec</option>
+              </select>
+            </div>
+
+            <div style="display: flex; gap: 14px; align-items: center;">
+              <label style="font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="checkbox" id="toggle-markers" checked onchange="toggleUserMarkersVisibility()"> Show Markers
+              </label>
+              <button class="btn-outline" onclick="clearAllMarkers()">Clear All</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Правая колонка Possible moving objects -->
+      <div class="panel" style="display: flex; flex-direction: column;">
+        <h3 style="font-size: 16px;">Placed Objects / Candidates</h3>
+        <span id="candidates-count-subtitle" style="font-size: 11px; color: #64748b; margin-bottom: 12px;">0 objects marked</span>
+
+        <div id="candidates-sidebar-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; margin-bottom: 14px;">
+          <div style="font-size: 12px; color: #64748b; text-align: center; padding: 20px 0;">Click on images to place tracking markers.</div>
+        </div>
+
+        <div class="kicker">MEASUREMENT SUMMARY</div>
+        <div style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;" id="measurement-summary-text">
+          Place a primary marker to start tracking shifts.
+        </div>
+
+        <div style="margin-top: auto;">
+          <button class="btn-accent" style="width: 100%; justify-content: center;" onclick="switchPage('details')">Inspect object details &rarr;</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05. OBJECT DETAILS -->
+  <section id="details" class="page-section">
+    <div class="page-header">
+      <div>
+        <div class="kicker">DETECTION LAB / OBJECT DETAILS</div>
+        <h2>Object Analysis <span id="details-object-badge" style="font-size: 11px; background: #262118; color: #eab308; border: 1px solid #854d0e; padding: 3px 8px; border-radius: 4px; vertical-align: middle; margin-left: 8px;">USER MARKED</span></h2>
+        <p>Dynamic kinematic metrics calculated from user-placed pixel markers.</p>
+      </div>
+      <button class="btn-outline" onclick="switchPage('lab')">&larr; Detection Lab</button>
+    </div>
+
+    <div class="details-layout">
+      <!-- Левая колонка -->
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="panel">
+          <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 10px;">
+            <strong>Active object preview</strong>
+            <span style="color: #56b4f9; font-size: 11px;" id="details-preview-tag">Epoch 04</span>
+          </div>
+          <div class="frame-card" style="height: 220px; pointer-events: none;">
+            <img id="details-preview-img" src="https://images-assets.nasa.gov/image/PIA16208/PIA16208~medium.jpg" alt="Candidate">
+          </div>
+        </div>
+
+        <div class="panel">
+          <h4 style="font-size: 14px; margin-bottom: 8px;">Basic information</h4>
+          <table class="meta-table">
+            <tr><td>Object type</td><td>User-tracked Source</td></tr>
+            <tr><td>Target Field</td><td id="info-field-name">Target Region</td></tr>
+            <tr><td>Coordinate frame</td><td>ICRS / J2000</td></tr>
+            <tr><td>Total Markers Placed</td><td id="info-markers-count">0</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Правая колонка -->
+      <div>
+        <div class="metrics-3">
+          <div class="metric-card">
+            <div class="kicker" style="margin:0;">SAMPLE OBSERVATIONS</div>
+            <div class="val" id="metric-obs-count">4</div>
+            <div style="font-size: 12px; color: #64748b;">Active epochs</div>
+          </div>
+          <div class="metric-card">
+            <div class="kicker" style="margin:0;">APPARENT DISPLACEMENT</div>
+            <div class="val" id="metric-displacement">0.0"</div>
+            <div style="font-size: 12px; color: #64748b;">Pixel offset vector</div>
+          </div>
+          <div class="metric-card">
+            <div class="kicker" style="margin:0;">MEAN APPARENT MOTION</div>
+            <div class="val" id="metric-motion">0.00" / day</div>
+            <div style="font-size: 12px; color: #64748b;">Calculated rate</div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between;">
+            <div>
+              <h4 style="font-size: 15px;">Detected position changes</h4>
+              <p style="font-size: 12px; color: #64748b;">Synchronized offset progression across timeline</p>
+            </div>
+            <span style="font-size: 10px; color: #64748b;">LIVE SYNCHRONIZED</span>
+          </div>
+
+          <div class="timeline-steps" style="margin: 28px 20px 14px;" id="details-timeline-steps">
+            <div class="step-dot active"><span style="display:block; margin-bottom:6px;" id="d-offset-0">0.0"</span><div class="dot"></div><span id="d-date-0">14 Oct</span></div>
+            <div class="step-dot"><span style="display:block; margin-bottom:6px;" id="d-offset-1">--</span><div class="dot"></div><span id="d-date-1">16 Oct</span></div>
+            <div class="step-dot"><span style="display:block; margin-bottom:6px;" id="d-offset-2">--</span><div class="dot"></div><span id="d-date-2">18 Oct</span></div>
+            <div class="step-dot"><span style="display:block; margin-bottom:6px;" id="d-offset-3">--</span><div class="dot"></div><span id="d-date-3">20 Oct</span></div>
+          </div>
+          <p style="font-size: 12px; color: #64748b;" id="motion-direction-text">Tracking motion vector relative to primary reference marker.</p>
+        </div>
+
+        <div class="panel">
+          <div style="display: flex; justify-content: space-between;">
+            <h4 style="font-size: 15px;">Observation history</h4>
+            <span class="kicker" style="margin:0;">BACKEND SYNCHRONIZED</span>
+          </div>
+          <table class="data-table" id="history-table">
+            <thead>
+              <tr>
+                <th>Observation (UTC)</th>
+                <th>RA (deg)</th>
+                <th>Dec (deg)</th>
+                <th>Offset</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody">
+              <tr><td>14 Oct 2026 · 03:42</td><td id="h-ra-0">83.6331</td><td id="h-dec-0">+22.0145</td><td style="color:#56b4f9;" id="h-off-0">0.0"</td><td>Reference</td></tr>
+              <tr><td>16 Oct 2026 · 03:42</td><td id="h-ra-1">83.6335</td><td id="h-dec-1">+22.0147</td><td style="color:#56b4f9;" id="h-off-1">--</td><td>Sample</td></tr>
+              <tr><td>18 Oct 2026 · 03:42</td><td id="h-ra-2">83.6339</td><td id="h-dec-2">+22.0149</td><td style="color:#56b4f9;" id="h-off-2">--</td><td>Sample</td></tr>
+              <tr><td>20 Oct 2026 · 03:42</td><td id="h-ra-3">83.6343</td><td id="h-dec-3">+22.0151</td><td style="color:#56b4f9;" id="h-off-3">--</td><td>Sample</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ОБЩИЙ ФУТЕР -->
+  <footer>
+    <div>SPHEREx Advanced Planet X & Object Detection Suite &nbsp;&bull;&nbsp; NASA Space Apps Challenge</div>
+    <div>Production Build v2.5 &nbsp;/&nbsp; Fully Synchronized</div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
