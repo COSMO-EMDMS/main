@@ -88,7 +88,12 @@ async def _run_job(key: str, req: CutoutRequest):
     pipeline, output_dir, _ = data_access.build_pipeline(req.ra, req.dec, cutout_size)
 
     jobstore.update(key, status=JobState.QUERYING, message="Querying IRSA for available epochs…")
-    await asyncio.to_thread(pipeline.run_query)
+    query_started = asyncio.get_running_loop().time()
+    query_heartbeat = asyncio.create_task(_query_heartbeat(key, query_started))
+    try:
+        await asyncio.to_thread(pipeline.run_query)
+    finally:
+        query_heartbeat.cancel()
 
     expected = data_access.count_expected_files(pipeline, output_dir)
     jobstore.update(key, files_total=expected, status=JobState.QUEUED,
@@ -128,6 +133,16 @@ async def _run_job(key: str, req: CutoutRequest):
     
     jobstore.update(key, status=JobState.COMPLETE, message="Ready",
                     progress_percent=100.0, result=payload)
+
+
+async def _query_heartbeat(key: str, started: float):
+    while True:
+        await asyncio.sleep(2)
+        elapsed = asyncio.get_running_loop().time() - started
+        jobstore.update(
+            key,
+            message=f"Querying IRSA for available epochs… ({elapsed:.0f}s elapsed)",
+        )
 
 
 async def _poll_progress(key: str, output_dir: Path, expected: int | None):

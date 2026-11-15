@@ -85,12 +85,13 @@ async function updateCoordinates() {
     statusTitle.innerText = labels[data.status] || 'Working';
     statusMessage.innerText = data.message || 'Working...';
     statusPercent.innerText = data.progress_percent == null
-      ? 'Progress is being measured...'
+      ? `${Math.round(data.elapsed_seconds || 0)}s elapsed`
       : `${Math.round(data.progress_percent)}%`;
     progress.style.width = data.progress_percent == null
       ? '25%'
       : `${Math.max(0, Math.min(100, data.progress_percent))}%`;
-    statusEta.innerText = formatDuration(data.estimated_seconds_remaining);
+    statusEta.innerText = formatDuration(data.estimated_seconds_remaining)
+      || (data.status === 'querying' ? 'IRSA response pending' : '');
     statusBox.hidden = false;
     loadingPlaceholder.hidden = data.status === 'complete' || data.status === 'failed';
   }
