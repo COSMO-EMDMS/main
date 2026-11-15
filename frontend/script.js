@@ -62,7 +62,7 @@ async function updateCoordinates() {
     console.log("Отправляем запрос на бэкенд:", { ra: raVal, dec: decVal });
     
     // 1. Отправляем POST-запрос на создание задачи
-    const response = await fetch('http://127.0.0.1:8000/api/cutouts', {
+    const response = await fetch('/api/cutouts', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -96,7 +96,7 @@ async function updateCoordinates() {
     while (jobStatus !== 'COMPLETE' && jobStatus !== 'FAILED') {
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      const pollResponse = await fetch(`http://127.0.0.1:8000${statusUrl}`, {
+      const pollResponse = await fetch(statusUrl, {
         headers: {
           'Cache-Control': 'no-store'
         }

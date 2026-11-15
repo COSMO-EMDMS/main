@@ -1,4 +1,6 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from .routes import cutouts
@@ -16,3 +18,7 @@ app.include_router(cutouts.router)
 
 # Serve FITS and PNGs directly — Aladin Lite loads FITS from a URL
 app.mount("/static", StaticFiles(directory=str(settings.static_dir)), name="static")
+
+frontend_dir = Path(__file__).resolve().parents[2] / "frontend"
+if frontend_dir.is_dir():
+    app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
