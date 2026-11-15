@@ -1,4 +1,5 @@
 from pathlib import Path
+import shutil
 import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
@@ -35,3 +36,19 @@ def make_preview_png(fits_path: Path, out_path: Path, size_px: int = None):
     img = img.resize((size_px, size_px), Image.LANCZOS)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     img.save(out_path)
+
+def make_all_previews(
+    output_dir: Path,
+    key: str,
+    progress_callback=None,
+):
+    fits_paths = sorted(output_dir.rglob("*.fits"))
+    preview_dir = settings.static_dir / "previews" / key
+    total = len(fits_paths)
+    for index, fits_path in enumerate(fits_paths, start=1):
+        make_preview_png(fits_path, preview_dir / f"{fits_path.stem}.png")
+        fits_dir = settings.static_dir / "fits" / key
+        fits_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(fits_path, fits_dir / fits_path.name)
+        if progress_callback:
+            progress_callback(index, total)

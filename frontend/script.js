@@ -58,7 +58,50 @@ async function updateCoordinates() {
   document.getElementById('lab-region-label').innerText = appState.regionName;
   document.getElementById('info-field-name').innerText = appState.regionName;
 
+  const statusBox = document.getElementById('job-status');
+  const statusTitle = document.getElementById('job-status-title');
+  const statusMessage = document.getElementById('job-status-message');
+  const statusPercent = document.getElementById('job-status-percent');
+  const statusEta = document.getElementById('job-status-eta');
+  const progress = document.getElementById('job-progress');
+  const loadingPlaceholder = document.getElementById('explorer-loading');
+  const queryButton = document.querySelector('button[onclick="updateCoordinates()"]');
+
+  function formatDuration(seconds) {
+    if (seconds == null) return '';
+    if (seconds < 60) return `${Math.ceil(seconds)} sec left`;
+    return `${Math.ceil(seconds / 60)} min left`;
+  }
+
+  function renderJobStatus(data) {
+    const labels = {
+      queued: 'Queued',
+      querying: 'Checking archive',
+      downloading: 'Downloading observations',
+      processing: 'Generating previews',
+      complete: 'Observation ready',
+      failed: 'Observation failed'
+    };
+    statusTitle.innerText = labels[data.status] || 'Working';
+    statusMessage.innerText = data.message || 'Working...';
+    statusPercent.innerText = data.progress_percent == null
+      ? 'Progress is being measured...'
+      : `${Math.round(data.progress_percent)}%`;
+    progress.style.width = data.progress_percent == null
+      ? '25%'
+      : `${Math.max(0, Math.min(100, data.progress_percent))}%`;
+    statusEta.innerText = formatDuration(data.estimated_seconds_remaining);
+    statusBox.hidden = false;
+    loadingPlaceholder.hidden = data.status === 'complete' || data.status === 'failed';
+  }
+
   try {
+    statusBox.hidden = false;
+    loadingPlaceholder.hidden = false;
+    statusTitle.innerText = 'Starting observation';
+    statusMessage.innerText = 'Connecting to the SPHEREx archive...';
+    progress.style.width = '8%';
+    if (queryButton) queryButton.disabled = true;
     console.log("Отправляем запрос на бэкенд:", { ra: raVal, dec: decVal });
     
     // 1. Отправляем POST-запрос на создание задачи
@@ -91,9 +134,10 @@ async function updateCoordinates() {
 
     let statusUrl = job.poll_url;
     let jobStatus = job.status;
+    renderJobStatus(job);
 
     // 2. Делаем Polling (опрос статуса каждые 1.5 секунды, как говорил друг)
-    while (jobStatus !== 'COMPLETE' && jobStatus !== 'FAILED') {
+    while (jobStatus !== 'complete' && jobStatus !== 'failed') {
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       const pollResponse = await fetch(statusUrl, {
@@ -106,9 +150,10 @@ async function updateCoordinates() {
       
       const statusData = await pollResponse.json();
       jobStatus = statusData.status;
+      renderJobStatus(statusData);
       console.log("Текущий статус задачи:", jobStatus);
 
-      if (jobStatus === 'COMPLETE' && statusData.result) {
+      if (jobStatus === 'complete' && statusData.result) {
         console.log("Картинки успешно получены!", statusData.result);
         
         const epochsList = statusData.result.epochs || statusData.result;
@@ -134,13 +179,18 @@ async function updateCoordinates() {
         break;
       }
       
-      if (jobStatus === 'FAILED') {
+      if (jobStatus === 'failed') {
         throw new Error("Задача завершилась с ошибкой на бэкенде");
       }
     }
 
   } catch (error) {
     console.error("Ошибка при запросе к бэкенду:", error);
+    statusTitle.innerText = 'Could not load observation';
+    statusMessage.innerText = error.message;
+    loadingPlaceholder.hidden = true;
+  } finally {
+    if (queryButton) queryButton.disabled = false;
   }
 }
 

@@ -45,3 +45,16 @@ def count_expected_files(pipeline, output_dir: Path) -> int | None:
             except TypeError:
                 pass
     return None
+
+def collect_epochs(output_dir: Path, key: str) -> dict:
+    fits_paths = sorted(output_dir.rglob("*.fits"))
+    return {
+        "epochs": [
+            {
+                "name": path.stem,
+                "img": f"/static/previews/{key}/{path.stem}.png",
+                "fits": f"/static/fits/{key}/{path.name}",
+            }
+            for path in fits_paths
+        ]
+    }

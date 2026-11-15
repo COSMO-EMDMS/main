@@ -26,3 +26,7 @@ Thumbs.db
 # Secrets
 .env
 .env.local
+backend/cache/metadata/cache.db
+backend/cache/metadata/cache.db-shm
+backend/cache/metadata/cache.db-wal
+backend/cache/metadata/cache.db

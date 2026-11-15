@@ -25,6 +25,8 @@ class CutoutJobResponse(BaseModel):
 class CutoutStatus(BaseModel):
     job_id: str
     status: JobState
+    elapsed_seconds: float = 0.0
+    estimated_seconds_remaining: float | None = None
     # Progress — frontend can render a real progress bar
     files_downloaded: int = 0
     files_total: int | None = None          # None until query completes

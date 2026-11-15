@@ -1,4 +1,6 @@
 import asyncio
+import time
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from .models import JobState
 
@@ -34,6 +36,9 @@ class JobStore:
     def create(self, key: str) -> None:
         self.jobs[key] = {
             "status": JobState.QUEUED,
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "_started_monotonic": time.monotonic(),
+            "_phase_started_monotonic": time.monotonic(),
             "files_downloaded": 0,
             "files_total": None,
             "progress_percent": None,
@@ -54,8 +59,26 @@ class JobStore:
             return None
         out = dict(job)
         out["queue_position"] = self._queue_position(key)
+        out["elapsed_seconds"] = round(
+            time.monotonic() - job["_started_monotonic"], 1
+        )
+        if (
+            job["status"] == JobState.DOWNLOADING
+            and job["files_downloaded"] > 0
+            and job["files_total"]
+        ):
+            elapsed = time.monotonic() - job["_phase_started_monotonic"]
+            remaining = job["files_total"] - job["files_downloaded"]
+            out["estimated_seconds_remaining"] = round(
+                remaining * elapsed / job["files_downloaded"], 1
+            )
+        else:
+            out["estimated_seconds_remaining"] = None
+        out.pop("_started_monotonic", None)
+        out.pop("_phase_started_monotonic", None)
         return out
 
+    @asynccontextmanager
     async def acquire_slot(self):
         async with self._semaphore:
             yield

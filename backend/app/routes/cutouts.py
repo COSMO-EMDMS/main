@@ -97,7 +97,8 @@ async def _run_job(key: str, req: CutoutRequest):
     # Завантаження (використовує семафор з jobstore, щоб не робити паралельних запитів)
     async with jobstore.acquire_slot():
         jobstore.update(key, status=JobState.DOWNLOADING,
-                        message=f"Downloading 0 / {expected or '?'} files")
+                        message=f"Downloading 0 / {expected or '?'} files",
+                        _phase_started_monotonic=asyncio.get_running_loop().time())
         
         # Запускаємо фоновий таск для оновлення прогресу
         poller = asyncio.create_task(_poll_progress(key, output_dir, expected))
@@ -107,8 +108,19 @@ async def _run_job(key: str, req: CutoutRequest):
             poller.cancel()
 
     # Обробка (створення PNG)
-    jobstore.update(key, status=JobState.PROCESSING, message="Generating previews…")
-    await asyncio.to_thread(processing.make_all_previews, output_dir, key)
+    jobstore.update(key, status=JobState.PROCESSING,
+                    progress_percent=0.0, message="Generating previews…",
+                    _phase_started_monotonic=asyncio.get_running_loop().time())
+    await asyncio.to_thread(
+        processing.make_all_previews,
+        output_dir,
+        key,
+        lambda done, total: jobstore.update(
+            key,
+            progress_percent=round(100 * done / total, 1) if total else None,
+            message=f"Generating previews {done} / {total}",
+        ),
+    )
 
     # Формування результату
     payload = data_access.collect_epochs(output_dir, key)

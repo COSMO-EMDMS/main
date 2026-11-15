@@ -110,6 +110,18 @@
         </div>
 
         <button class="btn-accent" style="width: 100%; justify-content: center; margin-top: 8px;" onclick="updateCoordinates()">Query Backend</button>
+        <div id="job-status" class="job-status" hidden>
+          <div class="job-status-heading">
+            <span class="loading-spinner" aria-hidden="true"></span>
+            <strong id="job-status-title">Preparing observation</strong>
+          </div>
+          <div id="job-status-message">Waiting for the archive...</div>
+          <div class="progress-track"><div id="job-progress" class="progress-value"></div></div>
+          <div class="job-status-meta">
+            <span id="job-status-percent">Starting</span>
+            <span id="job-status-eta"></span>
+          </div>
+        </div>
 
         <hr style="border: 0; border-top: 1px solid #162238; margin: 20px 0;">
 
@@ -132,6 +144,11 @@
 
         <div class="sky-viewport">
           <img id="explorer-img" src="https://images-assets.nasa.gov/image/PIA12348/PIA12348~medium.jpg" alt="Sky Field">
+          <div id="explorer-loading" class="sky-placeholder" hidden>
+            <span class="loading-spinner loading-spinner-large" aria-hidden="true"></span>
+            <strong>Preparing your sky field</strong>
+            <span>Querying the SPHEREx archive and downloading observations.</span>
+          </div>
           <div class="coord-grid-overlay" id="coord-grid"></div>
           <div class="zoom-controls">
             <button onclick="zoomExplorer(0.15)">+</button>
