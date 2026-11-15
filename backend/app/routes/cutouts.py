@@ -91,7 +91,14 @@ async def _run_job(key: str, req: CutoutRequest):
     query_started = asyncio.get_running_loop().time()
     query_heartbeat = asyncio.create_task(_query_heartbeat(key, query_started))
     try:
-        await asyncio.to_thread(pipeline.run_query)
+        await asyncio.wait_for(
+            asyncio.to_thread(pipeline.run_query),
+            timeout=settings.query_timeout_seconds,
+        )
+    except asyncio.TimeoutError as exc:
+        raise RuntimeError(
+            f"IRSA query timed out after {settings.query_timeout_seconds} seconds"
+        ) from exc
     finally:
         query_heartbeat.cancel()
 

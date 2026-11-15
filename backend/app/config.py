@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     retry_delay: int = 10
     max_retries: int = 5
     preview_size_px: int = 256
+    query_timeout_seconds: int = 120
 
 
 settings = Settings()

@@ -181,7 +181,7 @@ async function updateCoordinates() {
       }
       
       if (jobStatus === 'failed') {
-        throw new Error("Задача завершилась с ошибкой на бэкенде");
+        throw new Error(statusData.error || statusData.message || "Backend job failed");
       }
     }
 
