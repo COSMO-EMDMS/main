@@ -118,8 +118,20 @@ async def _run_job(key: str, req: CutoutRequest):
         
         # Запускаємо фоновий таск для оновлення прогресу
         poller = asyncio.create_task(_poll_progress(key, output_dir, expected))
+        downloader = asyncio.create_task(
+            asyncio.to_thread(pipeline.run_download, skip_existing=True)
+        )
         try:
-            await asyncio.to_thread(pipeline.run_download, skip_existing=True)
+            while not downloader.done():
+                downloaded = len({
+                    fits_path.stem
+                    for fits_path in output_dir.rglob("*.fits")
+                    if not fits_path.stem.endswith("_aligned")
+                })
+                if expected and downloaded >= expected:
+                    await asyncio.sleep(2)
+                    break
+                await asyncio.sleep(1)
         finally:
             poller.cancel()
 

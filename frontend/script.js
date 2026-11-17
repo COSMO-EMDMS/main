@@ -146,6 +146,20 @@ async function updateCoordinates() {
   const progress = document.getElementById('job-progress');
   const loadingPlaceholder = document.getElementById('explorer-loading');
   const queryButton = document.querySelector('button[onclick="updateCoordinates()"]');
+  let resultApplied = false;
+
+  function applyAndFinalize(statusData) {
+    if (statusData?.status === 'complete' && statusData.result) {
+      applyObservationResult(statusData.result);
+      statusTitle.innerText = 'Observation ready';
+      statusMessage.innerText = 'Ready';
+      statusPercent.innerText = '100%';
+      progress.style.width = '100%';
+      resultApplied = true;
+      return true;
+    }
+    return false;
+  }
 
   function formatDuration(seconds) {
     if (seconds == null) return '';
@@ -233,7 +247,10 @@ async function updateCoordinates() {
         if (!statusData.result) {
           throw new Error("Cache entry is missing observation results");
         }
-        applyObservationResult(statusData.result);
+        applyAndFinalize(statusData);
+        if (!resultApplied) {
+          throw new Error("Could not apply cached observation result");
+        }
       } else {
         throw new Error(`Could not read observation result: HTTP ${cachedStatus.status}`);
       }
@@ -258,7 +275,7 @@ async function updateCoordinates() {
 
       if (jobStatus === 'complete' && statusData.result) {
         console.log("Картинки успешно получены!", statusData.result);
-        applyObservationResult(statusData.result);
+        applyAndFinalize(statusData);
         break;
       }
       

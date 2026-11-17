@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     max_retries: int = 3
     max_preview_epochs: int = 12
     preview_size_px: int = 256
-    query_timeout_seconds: int = 120
+    query_timeout_seconds: int = 300
 
 
 settings = Settings()
