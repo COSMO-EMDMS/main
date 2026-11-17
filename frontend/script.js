@@ -12,6 +12,61 @@ let appState = {
   userMarkers: [] // Массив меток: { id, x, y, frameIndex, name }
 };
 
+function applyObservationResult(result) {
+  const epochsList = result?.epochs || result;
+  if (!Array.isArray(epochsList) || epochsList.length === 0) {
+    throw new Error("Backend returned no observation images");
+  }
+
+  appState.epochs = epochsList.map((epoch, index) => {
+    const imgUrl = typeof epoch === "string" ? epoch : (epoch.img || epoch.url);
+    const name = typeof epoch === "object" && epoch.name
+      ? epoch.name
+      : `Epoch ${index + 1}`;
+    return {
+      date: name,
+      short: name,
+      img: imgUrl
+    };
+  });
+
+  const firstImage = appState.epochs[0].img;
+  const lastImage = appState.epochs[appState.epochs.length - 1].img;
+  const cacheBust = `?t=${Date.now()}`;
+  document.getElementById("explorer-img").src = firstImage + cacheBust;
+  document.getElementById("explorer-epoch-date").innerText = appState.epochs[0].date;
+  document.getElementById("lab-img-a").src = firstImage + cacheBust;
+  document.getElementById("lab-img-b").src = lastImage + cacheBust;
+  document.getElementById("tm-img").src = firstImage + cacheBust;
+  document.getElementById("explorer-loading").hidden = true;
+
+  const observationsTable = document.querySelector("#display-coord")
+    ?.closest(".panel")
+    ?.querySelector(".meta-table");
+  if (observationsTable) {
+    const observationRow = observationsTable.rows[2];
+    if (observationRow) {
+      observationRow.cells[1].innerText =
+        `${appState.epochs.length} ${appState.epochs.length === 1 ? "epoch" : "epochs"} loaded`;
+    }
+  }
+
+  const dots = document.getElementById("timeline-dots");
+  if (dots) {
+    dots.innerHTML = appState.epochs.map((epoch, index) =>
+      `<div class="step-dot${index === 0 ? " active" : ""}" onclick="selectEpoch(${index})"><div class="dot"></div><span id="label-dot-${index}">${epoch.short}</span></div>`
+    ).join("");
+  }
+
+  const timelineCount = document.querySelector(".timeline-box span");
+  if (timelineCount) {
+    timelineCount.innerText =
+      `${appState.epochs.length} epochs · Backend synced`;
+  }
+
+  if (typeof selectEpoch === "function") selectEpoch(0);
+}
+
 // === 2. НАВИГАЦИЯ МЕЖДУ ЭКРАНАМИ ===
 function switchPage(pageId) {
   document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active-section'));
@@ -96,48 +151,6 @@ async function updateCoordinates() {
     loadingPlaceholder.hidden = data.status === 'complete' || data.status === 'failed';
   }
 
-  function applyObservationResult(result) {
-    const epochsList = result?.epochs || result;
-    if (!Array.isArray(epochsList) || epochsList.length === 0) return;
-
-    appState.epochs = epochsList.map((epoch, index) => {
-      const imgUrl = typeof epoch === 'string' ? epoch : (epoch.img || epoch.url);
-      const name = typeof epoch === 'object' && epoch.name
-        ? epoch.name
-        : `Epoch ${index + 1}`;
-      return {
-        date: name,
-        short: name,
-        img: imgUrl
-      };
-    });
-
-    document.getElementById('explorer-img').src = appState.epochs[0].img;
-    document.getElementById('lab-img-a').src = appState.epochs[0].img;
-    document.getElementById('lab-img-b').src =
-      appState.epochs[appState.epochs.length - 1].img;
-    document.getElementById('explorer-epoch-date').innerText =
-      appState.epochs[0].date;
-
-    if (typeof renderTimeline === 'function') renderTimeline();
-    if (typeof selectEpoch === 'function') selectEpoch(0);
-    loadingPlaceholder.hidden = true;
-  }
-
-  function renderTimeline() {
-    const dots = document.getElementById('timeline-dots');
-    if (dots) {
-      dots.innerHTML = appState.epochs.map((epoch, index) =>
-        `<div class="step-dot${index === 0 ? ' active' : ''}" onclick="selectEpoch(${index})"><div class="dot"></div><span id="label-dot-${index}">${epoch.short}</span></div>`
-      ).join('');
-    }
-
-    const timelineText = document.querySelector('.timeline-box span');
-    if (timelineText) {
-      timelineText.innerHTML = `${appState.epochs.length} epochs &middot; Backend synced`;
-    }
-  }
-
   try {
     statusBox.hidden = false;
     loadingPlaceholder.hidden = false;
@@ -185,7 +198,12 @@ async function updateCoordinates() {
       });
       if (cachedStatus.ok) {
         const statusData = await cachedStatus.json();
+        if (!statusData.result) {
+          throw new Error("Cache entry is missing observation results");
+        }
         applyObservationResult(statusData.result);
+      } else {
+        throw new Error(`Could not read observation result: HTTP ${cachedStatus.status}`);
       }
     }
 

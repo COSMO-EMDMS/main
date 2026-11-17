@@ -87,7 +87,10 @@ def count_expected_files(pipeline, output_dir: Path) -> int | None:
     return None
 
 def collect_epochs(output_dir: Path, key: str) -> dict:
-    fits_paths = sorted(output_dir.rglob("*.fits"))
+    fits_paths = sorted(
+        path for path in output_dir.rglob("*.fits")
+        if not path.stem.endswith("_aligned")
+    )
     return {
         "epochs": [
             {

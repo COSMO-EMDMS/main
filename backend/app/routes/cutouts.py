@@ -140,6 +140,8 @@ async def _run_job(key: str, req: CutoutRequest):
 
     # Формування результату
     payload = data_access.collect_epochs(output_dir, key)
+    if not payload["epochs"]:
+        raise RuntimeError("No FITS observations were downloaded")
     cache.mark_cached(key, payload)
     
     jobstore.update(key, status=JobState.COMPLETE, message="Ready",
