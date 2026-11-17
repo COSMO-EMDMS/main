@@ -42,7 +42,18 @@ def make_all_previews(
     key: str,
     progress_callback=None,
 ):
-    fits_paths = sorted(output_dir.rglob("*.fits"))
+    fits_paths = sorted(
+        path for path in output_dir.rglob("*.fits")
+        if not path.stem.endswith("_aligned")
+    )
+    unique_paths = []
+    seen_names = set()
+    for fits_path in fits_paths:
+        if fits_path.stem in seen_names:
+            continue
+        seen_names.add(fits_path.stem)
+        unique_paths.append(fits_path)
+    fits_paths = unique_paths[:settings.max_preview_epochs]
     preview_dir = settings.static_dir / "previews" / key
     total = len(fits_paths)
     for index, fits_path in enumerate(fits_paths, start=1):

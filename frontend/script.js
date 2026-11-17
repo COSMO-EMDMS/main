@@ -18,7 +18,17 @@ function applyObservationResult(result) {
     throw new Error("Backend returned no observation images");
   }
 
-  appState.epochs = epochsList.map((epoch, index) => {
+  const uniqueEpochs = [];
+  const seenImages = new Set();
+  for (const epoch of epochsList) {
+    const imgUrl = typeof epoch === "string" ? epoch : (epoch.img || epoch.url);
+    if (seenImages.has(imgUrl)) continue;
+    seenImages.add(imgUrl);
+    uniqueEpochs.push(epoch);
+    if (uniqueEpochs.length === 12) break;
+  }
+
+  appState.epochs = uniqueEpochs.map((epoch, index) => {
     const imgUrl = typeof epoch === "string" ? epoch : (epoch.img || epoch.url);
     const name = typeof epoch === "object" && epoch.name
       ? epoch.name
@@ -138,7 +148,9 @@ async function updateCoordinates() {
       failed: 'Observation failed'
     };
     statusTitle.innerText = labels[data.status] || 'Working';
-    statusMessage.innerText = data.message || 'Working...';
+    statusMessage.innerText = data.status === 'complete'
+      ? 'Ready'
+      : (data.message || 'Working...');
     statusPercent.innerText = data.progress_percent == null
       ? `${Math.round(data.elapsed_seconds || 0)}s elapsed`
       : `${Math.round(data.progress_percent)}%`;

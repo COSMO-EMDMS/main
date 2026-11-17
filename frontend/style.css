@@ -376,6 +376,10 @@ nav a.active {
   text-align: right;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .sky-viewport {
   position: relative;
   height: 360px;

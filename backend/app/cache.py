@@ -15,6 +15,9 @@ def is_cached(key: str) -> bool:
     epochs = payload.get("epochs") if isinstance(payload, dict) else None
     if not isinstance(epochs, list) or not epochs:
         return False
+    if len(epochs) > settings.max_preview_epochs:
+        cache.delete(key)
+        return False
 
     for epoch in epochs:
         if not isinstance(epoch, dict):

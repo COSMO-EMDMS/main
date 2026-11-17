@@ -68,3 +68,16 @@ def test_cache_hit_requires_preview_and_fits_files(monkeypatch, tmp_path):
     monkeypatch.setattr(cache.settings, "static_dir", tmp_path)
 
     assert cache.is_cached("test") is False
+
+def test_collect_epochs_deduplicates_and_caps(tmp_path):
+    nested = tmp_path / "nested"
+    nested.mkdir()
+    (tmp_path / "epoch_a.fits").write_bytes(b"a")
+    (nested / "epoch_a.fits").write_bytes(b"duplicate")
+    for index in range(20):
+        (tmp_path / f"epoch_{index}.fits").write_bytes(str(index).encode())
+
+    payload = data_access.collect_epochs(tmp_path, "test-key")
+
+    assert len(payload["epochs"]) == 12
+    assert len({epoch["name"] for epoch in payload["epochs"]}) == 12

@@ -91,6 +91,14 @@ def collect_epochs(output_dir: Path, key: str) -> dict:
         path for path in output_dir.rglob("*.fits")
         if not path.stem.endswith("_aligned")
     )
+    unique_paths = []
+    seen_names = set()
+    for path in fits_paths:
+        if path.stem in seen_names:
+            continue
+        seen_names.add(path.stem)
+        unique_paths.append(path)
+    fits_paths = unique_paths[:settings.max_preview_epochs]
     return {
         "epochs": [
             {
