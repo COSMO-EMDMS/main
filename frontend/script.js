@@ -12,6 +12,11 @@ let appState = {
   userMarkers: [] // Массив меток: { id, x, y, frameIndex, name }
 };
 
+const initialLoadingOverlay = document.getElementById("explorer-loading");
+if (initialLoadingOverlay?.hidden) {
+  initialLoadingOverlay.style.display = "none";
+}
+
 function applyObservationResult(result) {
   const epochsList = result?.epochs || result;
   if (!Array.isArray(epochsList) || epochsList.length === 0) {
@@ -48,7 +53,9 @@ function applyObservationResult(result) {
   document.getElementById("lab-img-a").src = firstImage + cacheBust;
   document.getElementById("lab-img-b").src = lastImage + cacheBust;
   document.getElementById("tm-img").src = firstImage + cacheBust;
-  document.getElementById("explorer-loading").hidden = true;
+  const loadingOverlay = document.getElementById("explorer-loading");
+  loadingOverlay.hidden = true;
+  loadingOverlay.style.display = "none";
 
   const observationsTable = document.querySelector("#display-coord")
     ?.closest(".panel")
@@ -99,6 +106,14 @@ document.querySelectorAll('.nav-link').forEach(link => {
     e.preventDefault();
     switchPage(link.dataset.target);
   });
+});
+
+document.addEventListener('click', (event) => {
+  const target = event.target.closest('[data-target]');
+  if (!target || target.classList.contains('nav-link')) return;
+  if (target.dataset.target && document.getElementById(target.dataset.target)) {
+    switchPage(target.dataset.target);
+  }
 });
 
 // === 3. SKY EXPLORER (ПОИСК ПО КООРДИНАТАМ И ЗУМ) ===
@@ -161,6 +176,11 @@ async function updateCoordinates() {
       || (data.status === 'querying' ? 'IRSA response pending' : '');
     statusBox.hidden = false;
     loadingPlaceholder.hidden = data.status === 'complete' || data.status === 'failed';
+    if (loadingPlaceholder.hidden) {
+      loadingPlaceholder.style.display = 'none';
+    } else {
+      loadingPlaceholder.style.display = 'flex';
+    }
   }
 
   try {

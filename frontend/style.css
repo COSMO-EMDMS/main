@@ -380,6 +380,11 @@ nav a.active {
   display: none !important;
 }
 
+.sky-placeholder[hidden],
+.job-status[hidden] {
+  display: none !important;
+}
+
 .sky-viewport {
   position: relative;
   height: 360px;
