@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,3 +19,8 @@ class Settings(BaseSettings):
 settings = Settings()
 settings.cache_dir.mkdir(parents=True, exist_ok=True)
 settings.static_dir.mkdir(parents=True, exist_ok=True)
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
