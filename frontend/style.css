@@ -401,6 +401,15 @@ nav a.active {
   height: 100%;
   object-fit: cover;
   transition: transform 0.3s ease;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.sky-viewport img.image-panning,
+.frame-card img.image-panning {
+  cursor: grabbing;
 }
 
 .sky-placeholder {
@@ -589,6 +598,10 @@ nav a.active {
   height: 100%;
   object-fit: cover;
   transition: transform 0.3s ease;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .frame-top {

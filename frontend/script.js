@@ -116,9 +116,128 @@ document.addEventListener('click', (event) => {
   }
 });
 
+function initializeImagePanning() {
+  setupImagePanning(
+    document.getElementById('explorer-img'),
+    'explorer',
+    () => currentZoom
+  );
+  setupImagePanning(
+    document.getElementById('tm-img'),
+    'tm',
+    () => 1.15
+  );
+  setupImagePanning(
+    document.getElementById('lab-img-a'),
+    'lab-a',
+    () => zoomLabA
+  );
+  setupImagePanning(
+    document.getElementById('lab-img-b'),
+    'lab-b',
+    () => zoomLabB
+  );
+  setupImagePanning(
+    document.getElementById('details-preview-img'),
+    'details',
+    () => 1.15
+  );
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeImagePanning);
+} else {
+  initializeImagePanning();
+}
+
 // === 3. SKY EXPLORER (ПОИСК ПО КООРДИНАТАМ И ЗУМ) ===
 let currentZoom = 1;
 let gridVisible = true;
+const panOffsets = new Map();
+
+function applyImageTransform(image, zoom, panKey) {
+  if (!image) return;
+  const pan = panOffsets.get(panKey) || { x: 0, y: 0 };
+  image.style.transform = `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`;
+  image.style.transformOrigin = 'center';
+}
+
+function clampPan(panKey, zoom, viewport) {
+  const pan = panOffsets.get(panKey) || { x: 0, y: 0 };
+  if (!viewport || zoom <= 1) {
+    panOffsets.set(panKey, { x: 0, y: 0 });
+    return;
+  }
+  const rect = viewport.getBoundingClientRect();
+  const maxX = rect.width * (zoom - 1) / 2;
+  const maxY = rect.height * (zoom - 1) / 2;
+  panOffsets.set(panKey, {
+    x: Math.max(-maxX, Math.min(maxX, pan.x)),
+    y: Math.max(-maxY, Math.min(maxY, pan.y))
+  });
+}
+
+function setupImagePanning(image, panKey, getZoom) {
+  if (!image || image.dataset.panEnabled === 'true') return;
+  image.dataset.panEnabled = 'true';
+  image.draggable = false;
+
+  let dragging = false;
+  let moved = false;
+  let startX = 0;
+  let startY = 0;
+  let startPan = { x: 0, y: 0 };
+
+  image.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    dragging = true;
+    moved = false;
+    startX = event.clientX;
+    startY = event.clientY;
+    startPan = panOffsets.get(panKey) || { x: 0, y: 0 };
+    if (typeof image.setPointerCapture === 'function') {
+      try {
+        image.setPointerCapture(event.pointerId);
+      } catch (_) {
+        // Synthetic or canceled pointers may not support capture.
+      }
+    }
+    image.classList.add('image-panning');
+  });
+
+  image.addEventListener('pointermove', (event) => {
+    if (!dragging) return;
+    const dx = event.clientX - startX;
+    const dy = event.clientY - startY;
+    if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+    if (moved) {
+      const viewport = image.closest('.sky-viewport, .frame-card');
+      panOffsets.set(panKey, { x: startPan.x + dx, y: startPan.y + dy });
+      clampPan(panKey, getZoom(), viewport);
+      applyImageTransform(image, getZoom(), panKey);
+    }
+  });
+
+  function finishDrag(event) {
+    if (!dragging) return;
+    dragging = false;
+    image.classList.remove('image-panning');
+    if (image.releasePointerCapture && image.hasPointerCapture(event.pointerId)) {
+      image.releasePointerCapture(event.pointerId);
+    }
+    if (moved) {
+      const viewport = image.closest('.frame-card');
+      if (viewport) viewport.dataset.dragMoved = 'true';
+    }
+  }
+
+  image.addEventListener('pointerup', finishDrag);
+  image.addEventListener('pointercancel', finishDrag);
+  image.addEventListener('lostpointercapture', () => {
+    dragging = false;
+    image.classList.remove('image-panning');
+  });
+}
 
 async function updateCoordinates() {
   const raVal = parseFloat(document.getElementById('input-ra').value.trim()) || 83.6331;
@@ -296,12 +415,15 @@ async function updateCoordinates() {
 
 function zoomExplorer(delta) {
   currentZoom = Math.min(Math.max(currentZoom + delta, 1), 2.5);
-  document.getElementById('explorer-img').style.transform = `scale(${currentZoom})`;
+  const image = document.getElementById('explorer-img');
+  clampPan('explorer', currentZoom, image.closest('.sky-viewport'));
+  applyImageTransform(image, currentZoom, 'explorer');
 }
 
 function resetZoom() {
   currentZoom = 1;
-  document.getElementById('explorer-img').style.transform = 'scale(1)';
+  panOffsets.set('explorer', { x: 0, y: 0 });
+  applyImageTransform(document.getElementById('explorer-img'), currentZoom, 'explorer');
 }
 
 function toggleGrid() {
@@ -321,6 +443,7 @@ function selectEpoch(index) {
     `OBSERVATION ${String(index + 1).padStart(2, '0')} / ${String(appState.epochs.length).padStart(2, '0')}`;
   document.getElementById('tm-date-input').value = appState.epochs[index].date;
   document.getElementById('tm-img').src = appState.epochs[index].img;
+  applyImageTransform(document.getElementById('tm-img'), 1.15, 'tm');
 
   document.querySelectorAll('#timeline-dots .step-dot').forEach((dot, i) => {
     dot.classList.toggle('active', i === index);
@@ -394,25 +517,35 @@ let markersVisible = true;
 function zoomLab(frame, delta) {
   if (frame === 'a') {
     zoomLabA = Math.min(Math.max(zoomLabA + delta, 1), 2.5);
-    document.getElementById('lab-img-a').style.transform = `scale(${zoomLabA})`;
+    const image = document.getElementById('lab-img-a');
+    clampPan('lab-a', zoomLabA, image.closest('.frame-card'));
+    applyImageTransform(image, zoomLabA, 'lab-a');
   } else {
     zoomLabB = Math.min(Math.max(zoomLabB + delta, 1), 2.5);
-    document.getElementById('lab-img-b').style.transform = `scale(${zoomLabB})`;
+    const image = document.getElementById('lab-img-b');
+    clampPan('lab-b', zoomLabB, image.closest('.frame-card'));
+    applyImageTransform(image, zoomLabB, 'lab-b');
   }
 }
 
 function resetLabZoom(frame) {
   if (frame === 'a') {
     zoomLabA = 1;
-    document.getElementById('lab-img-a').style.transform = 'scale(1)';
+    panOffsets.set('lab-a', { x: 0, y: 0 });
+    applyImageTransform(document.getElementById('lab-img-a'), zoomLabA, 'lab-a');
   } else {
     zoomLabB = 1;
-    document.getElementById('lab-img-b').style.transform = 'scale(1)';
+    panOffsets.set('lab-b', { x: 0, y: 0 });
+    applyImageTransform(document.getElementById('lab-img-b'), zoomLabB, 'lab-b');
   }
 }
 
 // Клик по картинкам в лаборатории для расстановки меток
 function handleImageClick(event, frameIndex) {
+  if (event.currentTarget.dataset.dragMoved === 'true') {
+    event.currentTarget.dataset.dragMoved = 'false';
+    return;
+  }
   const rect = event.currentTarget.getBoundingClientRect();
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
