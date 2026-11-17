@@ -35,12 +35,33 @@ function applyObservationResult(result) {
 
   appState.epochs = uniqueEpochs.map((epoch, index) => {
     const imgUrl = typeof epoch === "string" ? epoch : (epoch.img || epoch.url);
-    const name = typeof epoch === "object" && epoch.name
+    const observationName = typeof epoch === "object" && epoch.name
       ? epoch.name
       : `Epoch ${index + 1}`;
+    const dateValue = typeof epoch === "object" ? epoch.date : null;
+    const date = dateValue ? new Date(dateValue) : null;
+    const displayDate = date && !Number.isNaN(date.getTime())
+      ? new Intl.DateTimeFormat("en", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "UTC",
+          timeZoneName: "short"
+        }).format(date)
+      : observationName;
+    const shortDate = date && !Number.isNaN(date.getTime())
+      ? new Intl.DateTimeFormat("en", {
+          day: "2-digit",
+          month: "short"
+        }).format(date)
+      : `Epoch ${index + 1}`;
     return {
-      date: name,
-      short: name,
+      date: displayDate,
+      short: shortDate,
+      isoDate: dateValue,
+      name: observationName,
       img: imgUrl
     };
   });
@@ -79,6 +100,31 @@ function applyObservationResult(result) {
   if (timelineCount) {
     timelineCount.innerText =
       `${appState.epochs.length} epochs · Backend synced`;
+  }
+
+  const sidebar = document.getElementById("obs-sidebar-list");
+  if (sidebar) {
+    sidebar.innerHTML = appState.epochs.map((epoch, index) =>
+      `<div class="obs-item${index === 0 ? " active" : ""}" onclick="selectEpoch(${index})"><div><strong id="sidebar-label-${index}">${String(index + 1).padStart(2, "0")} &nbsp; ${epoch.short}</strong><small>${epoch.date}</small></div></div>`
+    ).join("");
+  }
+
+  const labDateA = document.getElementById("lab-date-a");
+  const labDateB = document.getElementById("lab-date-b");
+  if (labDateA) labDateA.value = appState.epochs[0].short;
+  if (labDateB) labDateB.value =
+    appState.epochs[appState.epochs.length - 1].short;
+
+  appState.epochs.forEach((epoch, index) => {
+    const detailDate = document.getElementById(`d-date-${index}`);
+    if (detailDate) detailDate.innerText = epoch.short;
+  });
+
+  const historyBody = document.getElementById("history-tbody");
+  if (historyBody) {
+    historyBody.innerHTML = appState.epochs.map((epoch, index) =>
+      `<tr><td>${epoch.date}</td><td id="h-ra-${index}">${appState.ra}</td><td id="h-dec-${index}">${appState.dec}</td><td id="h-off-${index}" style="color:#56b4f9;">${index === 0 ? '0.0"' : '--'}</td><td>${index === 0 ? "Reference" : "Sample"}</td></tr>`
+    ).join("");
   }
 
   if (typeof selectEpoch === "function") selectEpoch(0);

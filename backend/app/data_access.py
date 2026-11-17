@@ -1,5 +1,9 @@
 from pathlib import Path
 import matplotlib
+import re
+from datetime import datetime, timedelta
+from astropy.io import fits
+from astropy.time import Time
 from spxquery import SPXQueryPipeline, Source, QueryConfig
 from spxquery.core.config import DownloadConfig, AdvancedConfig
 from .config import settings
@@ -86,6 +90,37 @@ def count_expected_files(pipeline, output_dir: Path) -> int | None:
                 pass
     return None
 
+def _observation_date(path: Path) -> str | None:
+    header = {}
+    try:
+        header = fits.getheader(path, 0)
+    except Exception:
+        pass
+
+    for key in ("DATE-OBS", "UTC-OBS", "TIME-OBS"):
+        value = header.get(key)
+        if value:
+            try:
+                return Time(str(value).strip()).isot
+            except Exception:
+                pass
+
+    mjd = header.get("MJD-OBS")
+    if mjd is not None:
+        try:
+            return Time(float(mjd), format="mjd").isot
+        except (TypeError, ValueError):
+            pass
+
+    match = re.search(r"(?<!\d)(20\d{2})W(\d{1,2})", path.stem)
+    if match:
+        year = int(match.group(1))
+        week = int(match.group(2))
+        date = datetime(year, 1, 1) + timedelta(weeks=week - 1)
+        date -= timedelta(days=date.weekday())
+        return date.isoformat() + "T00:00:00.000"
+    return None
+
 def collect_epochs(output_dir: Path, key: str) -> dict:
     fits_paths = sorted(
         path for path in output_dir.rglob("*.fits")
@@ -103,6 +138,7 @@ def collect_epochs(output_dir: Path, key: str) -> dict:
         "epochs": [
             {
                 "name": path.stem,
+                "date": _observation_date(path),
                 "img": f"/static/previews/{key}/{path.stem}.png",
                 "fits": f"/static/fits/{key}/{path.name}",
             }

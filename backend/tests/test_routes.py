@@ -81,3 +81,9 @@ def test_collect_epochs_deduplicates_and_caps(tmp_path):
 
     assert len(payload["epochs"]) == 12
     assert len({epoch["name"] for epoch in payload["epochs"]}) == 12
+
+def test_observation_week_fallback_formats_as_date(tmp_path):
+    fits_path = tmp_path / "2025W35_1A_0432_4.fits"
+    date = data_access._observation_date(fits_path)
+
+    assert date.startswith("2025-")
