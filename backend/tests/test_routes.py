@@ -4,6 +4,7 @@ from app.jobstore import jobstore
 from app import data_access
 import app.cache as cache
 from types import SimpleNamespace
+from pathlib import Path
 
 def test_cache_hit_returns_200_immediately(monkeypatch):
     monkeypatch.setattr(cache, "is_cached", lambda k: True)
@@ -40,3 +41,30 @@ def test_preview_epochs_are_capped_across_bands(monkeypatch):
     assert selected == 12
     assert len(query_results.observations) == 12
     assert set(query_results.band_counts) == {"D1", "D2", "D3", "D4", "D5", "D6"}
+
+def test_prepare_preview_download_removes_stale_fits(tmp_path):
+    stale = tmp_path / "old.fits"
+    stale.write_bytes(b"stale")
+
+    data_access.prepare_preview_download(tmp_path)
+
+    assert not stale.exists()
+
+def test_cache_hit_requires_preview_and_fits_files(monkeypatch, tmp_path):
+    payload = {
+        "epochs": [{
+            "name": "epoch",
+            "img": "/static/previews/test/epoch.png",
+            "fits": "/static/fits/test/epoch.fits",
+        }]
+    }
+    class FakeCache:
+        def get(self, key):
+            return payload
+        def delete(self, key):
+            pass
+
+    monkeypatch.setattr(cache, "cache", FakeCache())
+    monkeypatch.setattr(cache.settings, "static_dir", tmp_path)
+
+    assert cache.is_cached("test") is False

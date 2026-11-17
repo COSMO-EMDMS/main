@@ -67,6 +67,11 @@ def limit_preview_epochs(pipeline) -> int:
     }
     return len(query_results.observations)
 
+def prepare_preview_download(output_dir: Path) -> None:
+    """Remove stale FITS files so cache keys cannot report files from earlier jobs."""
+    for fits_path in output_dir.rglob("*.fits"):
+        fits_path.unlink(missing_ok=True)
+
 def count_expected_files(pipeline, output_dir: Path) -> int | None:
     for candidate in output_dir.glob("query_results*.csv"):
         with open(candidate) as f:

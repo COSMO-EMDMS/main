@@ -96,6 +96,48 @@ async function updateCoordinates() {
     loadingPlaceholder.hidden = data.status === 'complete' || data.status === 'failed';
   }
 
+  function applyObservationResult(result) {
+    const epochsList = result?.epochs || result;
+    if (!Array.isArray(epochsList) || epochsList.length === 0) return;
+
+    appState.epochs = epochsList.map((epoch, index) => {
+      const imgUrl = typeof epoch === 'string' ? epoch : (epoch.img || epoch.url);
+      const name = typeof epoch === 'object' && epoch.name
+        ? epoch.name
+        : `Epoch ${index + 1}`;
+      return {
+        date: name,
+        short: name,
+        img: imgUrl
+      };
+    });
+
+    document.getElementById('explorer-img').src = appState.epochs[0].img;
+    document.getElementById('lab-img-a').src = appState.epochs[0].img;
+    document.getElementById('lab-img-b').src =
+      appState.epochs[appState.epochs.length - 1].img;
+    document.getElementById('explorer-epoch-date').innerText =
+      appState.epochs[0].date;
+
+    if (typeof renderTimeline === 'function') renderTimeline();
+    if (typeof selectEpoch === 'function') selectEpoch(0);
+    loadingPlaceholder.hidden = true;
+  }
+
+  function renderTimeline() {
+    const dots = document.getElementById('timeline-dots');
+    if (dots) {
+      dots.innerHTML = appState.epochs.map((epoch, index) =>
+        `<div class="step-dot${index === 0 ? ' active' : ''}" onclick="selectEpoch(${index})"><div class="dot"></div><span id="label-dot-${index}">${epoch.short}</span></div>`
+      ).join('');
+    }
+
+    const timelineText = document.querySelector('.timeline-box span');
+    if (timelineText) {
+      timelineText.innerHTML = `${appState.epochs.length} epochs &middot; Backend synced`;
+    }
+  }
+
   try {
     statusBox.hidden = false;
     loadingPlaceholder.hidden = false;
@@ -137,6 +179,16 @@ async function updateCoordinates() {
     let jobStatus = job.status;
     renderJobStatus(job);
 
+    if (jobStatus === 'complete') {
+      const cachedStatus = await fetch(statusUrl, {
+        headers: { 'Cache-Control': 'no-store' }
+      });
+      if (cachedStatus.ok) {
+        const statusData = await cachedStatus.json();
+        applyObservationResult(statusData.result);
+      }
+    }
+
     // 2. Делаем Polling (опрос статуса каждые 1.5 секунды, как говорил друг)
     while (jobStatus !== 'complete' && jobStatus !== 'failed') {
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -156,27 +208,7 @@ async function updateCoordinates() {
 
       if (jobStatus === 'complete' && statusData.result) {
         console.log("Картинки успешно получены!", statusData.result);
-        
-        const epochsList = statusData.result.epochs || statusData.result;
-        if (Array.isArray(epochsList)) {
-          epochsList.forEach((ep, idx) => {
-            const imgUrl = typeof ep === 'string' ? ep : (ep.img || ep.url);
-            if (appState.epochs && appState.epochs[idx]) {
-              appState.epochs[idx].img = imgUrl;
-            }
-          });
-          
-          // Принудительно обновляем отображение эпох и интерфейс
-          if (typeof selectEpoch === 'function') {
-            selectEpoch(0);
-          }
-          if (typeof renderTimeline === 'function') {
-            renderTimeline();
-          }
-          if (typeof updateUI === 'function') {
-            updateUI();
-          }
-        }
+        applyObservationResult(statusData.result);
         break;
       }
       
@@ -216,8 +248,10 @@ let currentEpoch = 0;
 let tmTimer = null;
 
 function selectEpoch(index) {
+  if (!appState.epochs[index]) return;
   currentEpoch = index;
-  document.getElementById('tm-epoch-tag').innerText = `OBSERVATION 0${index + 1} / 04`;
+  document.getElementById('tm-epoch-tag').innerText =
+    `OBSERVATION ${String(index + 1).padStart(2, '0')} / ${String(appState.epochs.length).padStart(2, '0')}`;
   document.getElementById('tm-date-input').value = appState.epochs[index].date;
   document.getElementById('tm-img').src = appState.epochs[index].img;
 

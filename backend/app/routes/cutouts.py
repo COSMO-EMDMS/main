@@ -106,6 +106,7 @@ async def _run_job(key: str, req: CutoutRequest):
     expected = data_access.count_expected_files(pipeline, output_dir)
     if preview_limit:
         expected = preview_limit
+    data_access.prepare_preview_download(output_dir)
     jobstore.update(key, files_total=expected, status=JobState.QUEUED,
                     message="Waiting for download slot…")
 
@@ -159,7 +160,11 @@ async def _poll_progress(key: str, output_dir: Path, expected: int | None):
     """Кожні 2 секунди рахує файли на диску і оновлює статус."""
     while True:
         await asyncio.sleep(2)
-        n = sum(1 for _ in output_dir.rglob("*.fits"))
+        n = sum(
+            1 for fits_path in output_dir.rglob("*.fits")
+            if not fits_path.stem.endswith("_aligned")
+        )
+        n = min(n, expected) if expected else n
         pct = round(100 * n / expected, 1) if expected else None
         msg = f"Downloading {n} / {expected or '?'} files"
         jobstore.update(key, files_downloaded=n, progress_percent=pct, message=msg)
