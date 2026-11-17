@@ -9,9 +9,10 @@ class Settings(BaseSettings):
     cache_dir: Path = Path("cache")
     static_dir: Path = Path("static")
     default_cutout_size: str = "200px"
-    max_workers: int = 1
-    retry_delay: int = 10
-    max_retries: int = 5
+    max_workers: int = 4
+    retry_delay: int = 2
+    max_retries: int = 3
+    max_preview_epochs: int = 12
     preview_size_px: int = 256
     query_timeout_seconds: int = 120
 

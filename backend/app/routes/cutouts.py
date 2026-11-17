@@ -102,7 +102,10 @@ async def _run_job(key: str, req: CutoutRequest):
     finally:
         query_heartbeat.cancel()
 
+    preview_limit = data_access.limit_preview_epochs(pipeline)
     expected = data_access.count_expected_files(pipeline, output_dir)
+    if preview_limit:
+        expected = preview_limit
     jobstore.update(key, files_total=expected, status=JobState.QUEUED,
                     message="Waiting for download slot…")
 

@@ -24,13 +24,48 @@ def build_pipeline(ra: float, dec: float, cutout_size: str):
     query = QueryConfig(source=source, output_dir=str(output_dir))
     download = DownloadConfig(
         cutout_size=cutout_size,
-        max_download_workers=settings.max_workers,  # ← правильно
+        max_download_workers=settings.max_workers,
         max_retries=settings.max_retries,
         retry_delay=settings.retry_delay,
+        chunk_size=64 * 1024,
         timeout=300,
     )
     pipeline = SPXQueryPipeline(AdvancedConfig(query=query, download=download))
     return pipeline, output_dir, key
+
+def limit_preview_epochs(pipeline) -> int:
+    """Keep only a small, evenly spaced set of observations for preview jobs."""
+    query_results = getattr(getattr(pipeline, "state", None), "query_results", None)
+    observations = getattr(query_results, "observations", None)
+    if not observations:
+        return 0
+
+    per_band = max(1, settings.max_preview_epochs // 6)
+    selected = []
+    for band in ("D1", "D2", "D3", "D4", "D5", "D6"):
+        band_observations = sorted(
+            (observation for observation in observations if observation.band == band),
+            key=lambda observation: observation.mjd,
+        )
+        if not band_observations:
+            continue
+        if len(band_observations) <= per_band:
+            selected.extend(band_observations)
+            continue
+        indexes = {
+            round(index * (len(band_observations) - 1) / (per_band - 1))
+            for index in range(per_band)
+        } if per_band > 1 else {0}
+        selected.extend(band_observations[index] for index in sorted(indexes))
+
+    selected = sorted(selected, key=lambda observation: observation.mjd)
+    query_results.observations = selected[:settings.max_preview_epochs]
+    query_results.band_counts = {
+        band: sum(observation.band == band for observation in query_results.observations)
+        for band in ("D1", "D2", "D3", "D4", "D5", "D6")
+        if any(observation.band == band for observation in query_results.observations)
+    }
+    return len(query_results.observations)
 
 def count_expected_files(pipeline, output_dir: Path) -> int | None:
     for candidate in output_dir.glob("query_results*.csv"):
